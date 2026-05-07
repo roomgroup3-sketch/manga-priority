@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ネーム優先順位" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <title>ネーム優先順位ツール</title>
+
+  <!-- PWA manifest inline -->
+  <script>
+    const manifest = {
+      name: "ネーム優先順位ツール",
+      short_name: "ネーム",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#1a1a2e",
+      theme_color: "#1a1a2e",
+      icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231a1a2e'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E📖%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml" }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = url;
+    document.head.appendChild(link);
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Hiragino Kaku Gothic Pro', 'Noto Sans JP', sans-serif;
+      color: #fff;
+      overflow-x: hidden;
+    }
+    .safe-area {
+      padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
+      padding-top: max(env(safe-area-inset-top, 20px), 24px);
+    }
+    .header { text-align: center; margin-bottom: 24px; }
+    .title {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, #e94560, #f5a623);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { font-size: 11px; color: #8899aa; margin-top: 4px; }
+
+    .section-label { font-size: 11px; color: #8899aa; margin-bottom: 8px; letter-spacing: 1px; }
+
+    /* Presets */
+    .presets { margin-bottom: 20px; }
+    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #334;
+      background: #ffffff11;
+      color: #aab;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      -webkit-appearance: none;
+    }
+    .preset-btn.active { border: 2px solid #e94560; background: #e9456022; color: #e94560; }
+    .reset-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #334;
+      background: #ffffff08;
+      color: #778;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* List */
+    .list-card {
+      background: #ffffff08;
+      border-radius: 16px;
+      border: 1px solid #ffffff15;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .list-header {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      padding: 10px 16px;
+      border-bottom: 1px solid #ffffff10;
+      font-size: 11px;
+      color: #556;
+      letter-spacing: 1px;
+    }
+    .list-item {
+      display: grid;
+      grid-template-columns: 44px 1fr 32px;
+      align-items: center;
+      padding: 11px 16px;
+      border-bottom: 1px solid #ffffff08;
+      cursor: grab;
+      transition: background 0.15s, transform 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item.dragging { opacity: 0.35; }
+    .list-item.over { background: #e9456015; border-left: 3px solid #e94560; transform: scale(1.01); }
+    .list-item.even { background: #ffffff04; }
+
+    .rank {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+    }
+    .rank-1 { background: linear-gradient(135deg, #f5a623, #f53d7a); color: #fff; }
+    .rank-2 { background: linear-gradient(135deg, #b0bec5, #78909c); color: #fff; }
+    .rank-3 { background: linear-gradient(135deg, #a5735a, #7a5a3e); color: #fff; }
+    .rank-n { background: #ffffff14; color: #667; }
+
+    .item-inner { display: flex; align-items: center; gap: 12px; }
+    .item-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .item-label { font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
+    .drag-handle { color: #445; font-size: 18px; text-align: center; }
+
+    /* Summary */
+    .summary {
+      background: #e9456011;
+      border: 1px solid #e9456033;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: #e94560aa;
+      line-height: 1.8;
+      word-break: break-all;
+    }
+    .summary strong { color: #e94560; }
+
+    /* Save */
+    .save-section { margin-bottom: 20px; }
+    .save-row { display: flex; gap: 8px; }
+    .save-input {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid #334;
+      background: #ffffff11;
+      color: #fff;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    .save-input::placeholder { color: #445; }
+    .save-btn {
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(90deg, #e94560, #f5a623);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .cancel-btn {
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid #334;
+      background: transparent;
+      color: #778;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .add-btn {
+      padding: 9px 20px;
+      border-radius: 20px;
+      border: 1px dashed #445;
+      background: transparent;
+      color: #778;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* Saved sets */
+    .saved-list { display: flex; flex-direction: column; gap: 8px; }
+    .saved-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #ffffff08;
+      border: 1px solid #334;
+      border-radius: 10px;
+      gap: 8px;
+    }
+    .saved-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+    .saved-order { font-size: 10px; color: #556; }
+    .saved-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .load-btn {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid #556;
+      background: transparent;
+      color: #aab;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .del-btn {
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: none;
+      background: #e9456022;
+      color: #e94560;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+<div class="safe-area" id="app">
+  <div class="header">
+    <div class="title">📖 ネーム優先順位ツール</div>
+    <div class="subtitle">ドラッグ＆ドロップで並び替えて優先順位を決めよう</div>
+  </div>
+
+  <div class="presets">
+    <div class="section-label">プリセット</div>
+    <div class="preset-row" id="presets"></div>
+  </div>
+
+  <div class="list-card">
+    <div class="list-header"><span>順位</span><span>要素</span></div>
+    <div id="sortable-list"></div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="save-section">
+    <div class="section-label">セット保存</div>
+    <div id="save-area">
+      <button class="add-btn" onclick="showSaveInput()">＋ 現在の順序をセットとして保存</button>
+    </div>
+  </div>
+
+  <div id="saved-section" style="display:none">
+    <div class="section-label">保存済みセット</div>
+    <div class="saved-list" id="saved-list"></div>
+  </div>
+</div>
+
+<script>
+const ELEMENTS = [
+  { id: "serif",     label: "セリフ",   icon: "💬", bg: "#FFE0B233", border: "#FFE0B255" },
+  { id: "atari",     label: "アタリ",   icon: "✏️", bg: "#E1F5FE33", border: "#E1F5FE55" },
+  { id: "fukidashi", label: "吹き出し", icon: "🗯️", bg: "#F3E5F533", border: "#F3E5F555" },
+  { id: "kariKoma",  label: "仮コマ",   icon: "🔲", bg: "#E8F5E933", border: "#E8F5E955" },
+  { id: "koma",      label: "コマ",     icon: "⬜", bg: "#FFF9C433", border: "#FFF9C455" },
+  { id: "chara1",    label: "キャラ1",  icon: "🧑", bg: "#FCE4EC33", border: "#FCE4EC55" },
+  { id: "chara2",    label: "キャラ2",  icon: "👤", bg: "#E0F7FA33", border: "#E0F7FA55" },
+  { id: "chara3",    label: "キャラ3",  icon: "👥", bg: "#F1F8E933", border: "#F1F8E955" },
+  { id: "haikei",    label: "背景",     icon: "🏞️", bg: "#EDE7F633", border: "#EDE7F655" },
+];
+
+const PRESETS = {
+  "キャラ重視": ["chara1","chara2","chara3","serif","fukidashi","atari","koma","kariKoma","haikei"],
+  "構図重視":   ["koma","kariKoma","atari","haikei","chara1","chara2","chara3","fukidashi","serif"],
+  "セリフ重視": ["serif","fukidashi","chara1","chara2","chara3","atari","koma","kariKoma","haikei"],
+};
+
+let items = [...ELEMENTS];
+let savedSets = JSON.parse(localStorage.getItem("mangaSets") || "[]");
+let activePreset = null;
+let dragSrcIdx = null;
+let touchDragIdx = null;
+let touchClone = null;
+let touchOverIdx = null;
+
+function getEl(id) { return ELEMENTS.find(e => e.id === id); }
+
+function renderList() {
+  const list = document.getElementById("sortable-list");
+  list.innerHTML = "";
+  items.forEach((item, idx) => {
+    const div = document.createElement("div");
+    div.className = "list-item" + (idx % 2 === 0 ? " even" : "");
+    div.dataset.idx = idx;
+
+    const rankClass = idx === 0 ? "rank-1" : idx === 1 ? "rank-2" : idx === 2 ? "rank-3" : "rank-n";
+    div.innerHTML = `
+      <div class="rank ${rankClass}">${idx + 1}</div>
+      <div class="item-inner">
+        <div class="item-icon" style="background:${item.bg};border:1px solid ${item.border}">${item.icon}</div>
+        <span class="item-label">${item.label}</span>
+      </div>
+      <div class="drag-handle">⠿</div>
+    `;
+
+    // Desktop drag
+    div.draggable = true;
+    div.addEventListener("dragstart", e => { dragSrcIdx = idx; div.classList.add("dragging"); });
+    div.addEventListener("dragover", e => { e.preventDefault(); clearOver(); div.classList.add("over"); });
+    div.addEventListener("drop", e => { e.preventDefault(); reorder(dragSrcIdx, idx); });
+    div.addEventListener("dragend", () => { clearOver(); div.classList.remove("dragging"); });
+
+    // Touch drag
+    div.addEventListener("touchstart", onTouchStart, { passive: false });
+    div.addEventListener("touchmove", onTouchMove, { passive: false });
+    div.addEventListener("touchend", onTouchEnd);
+
+    list.appendChild(div);
+  });
+  renderSummary();
+}
+
+function clearOver() {
+  document.querySelectorAll(".list-item.over").forEach(el => el.classList.remove("over"));
+}
+
+function reorder(from, to) {
+  if (from === to || from == null) return;
+  const newItems = [...items];
+  const [moved] = newItems.splice(from, 1);
+  newItems.splice(to, 0, moved);
+  items = newItems;
+  activePreset = null;
+  renderList();
+  renderPresets();
+}
+
+function renderSummary() {
+  const s = document.getElementById("summary");
+  s.innerHTML = `<strong>現在の順序：</strong>` + items.map(i => i.label).join(" → ");
+}
+
+function renderPresets() {
+  const row = document.getElementById("presets");
+  row.innerHTML = "";
+  Object.keys(PRESETS).forEach(name => {
+    const btn = document.createElement("button");
+    btn.className = "preset-btn" + (activePreset === name ? " active" : "");
+    btn.textContent = name;
+    btn.onclick = () => applyPreset(name);
+    row.appendChild(btn);
+  });
+  const reset = document.createElement("button");
+  reset.className = "reset-btn";
+  reset.textContent = "リセット";
+  reset.onclick = () => { items = [...ELEMENTS]; activePreset = null; renderList(); renderPresets(); };
+  row.appendChild(reset);
+}
+
+function applyPreset(name) {
+  const order = PRESETS[name];
+  items = [...ELEMENTS].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  activePreset = name;
+  renderList();
+  renderPresets();
+}
+
+function showSaveInput() {
+  document.getElementById("save-area").innerHTML = `
+    <div class="save-row">
+      <input class="save-input" id="save-name" placeholder="セット名を入力..." />
+      <button class="save-btn" onclick="doSave()">保存</button>
+      <button class="cancel-btn" onclick="hideSaveInput()">✕</button>
+    </div>
+  `;
+  setTimeout(() => document.getElementById("save-name")?.focus(), 100);
+}
+
+function hideSaveInput() {
+  document.getElementById("save-area").innerHTML = `<button class="add-btn" onclick="showSaveInput()">＋ 現在の順序をセットとして保存</button>`;
+}
+
+function doSave() {
+  const name = document.getElementById("save-name")?.value?.trim();
+  if (!name) return;
+  savedSets.push({ name, order: items.map(i => i.id) });
+  localStorage.setItem("mangaSets", JSON.stringify(savedSets));
+  hideSaveInput();
+  renderSaved();
+}
+
+function renderSaved() {
+  const sec = document.getElementById("saved-section");
+  const list = document.getElementById("saved-list");
+  if (savedSets.length === 0) { sec.style.display = "none"; return; }
+  sec.style.display = "block";
+  list.innerHTML = "";
+  savedSets.forEach((saved, idx) => {
+    const div = document.createElement("div");
+    div.className = "saved-item";
+    const orderStr = saved.order.map(id => getEl(id)?.label || id).join(" → ");
+    div.innerHTML = `
+      <div style="min-width:0">
+        <div class="saved-name">${saved.name}</div>
+        <div class="saved-order">${orderStr}</div>
+      </div>
+      <div class="saved-actions">
+        <button class="load-btn" onclick="loadSaved(${idx})">読込</button>
+        <button class="del-btn" onclick="deleteSaved(${idx})">✕</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function loadSaved(idx) {
+  const saved = savedSets[idx];
+  items = [...ELEMENTS].sort((a, b) => saved.order.indexOf(a.id) - saved.order.indexOf(b.id));
+  activePreset = null;
+  renderList();
+  renderPresets();
+}
+
+function deleteSaved(idx) {
+  savedSets.splice(idx, 1);
+  localStorage.setItem("mangaSets", JSON.stringify(savedSets));
+  renderSaved();
+}
+
+// ---- Touch drag & drop ----
+function onTouchStart(e) {
+  const div = e.currentTarget;
+  touchDragIdx = parseInt(div.dataset.idx);
+  // create ghost
+  touchClone = div.cloneNode(true);
+  touchClone.style.cssText = `
+    position:fixed; left:0; top:0; width:${div.offsetWidth}px; opacity:0.85;
+    pointer-events:none; z-index:9999; background:#1a2a4a;
+    border-radius:12px; box-shadow:0 8px 32px #0008;
+    transition: none;
+  `;
+  document.body.appendChild(touchClone);
+  div.classList.add("dragging");
+  moveTouchClone(e.touches[0]);
+}
+
+function moveTouchClone(touch) {
+  if (!touchClone) return;
+  touchClone.style.transform = `translate(${touch.clientX - touchClone.offsetWidth / 2}px, ${touch.clientY - 28}px)`;
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  moveTouchClone(touch);
+
+  // find which item we're over
+  const els = document.querySelectorAll(".list-item");
+  clearOver();
+  touchOverIdx = null;
+  els.forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+      el.classList.add("over");
+      touchOverIdx = parseInt(el.dataset.idx);
+    }
+  });
+}
+
+function onTouchEnd(e) {
+  if (touchClone) { touchClone.remove(); touchClone = null; }
+  clearOver();
+  document.querySelectorAll(".list-item.dragging").forEach(el => el.classList.remove("dragging"));
+  if (touchOverIdx !== null && touchOverIdx !== touchDragIdx) {
+    reorder(touchDragIdx, touchOverIdx);
+  }
+  touchDragIdx = null;
+  touchOverIdx = null;
+}
+
+// Init
+renderList();
+renderPresets();
+renderSaved();
+</script>
+</body>
+</html>
