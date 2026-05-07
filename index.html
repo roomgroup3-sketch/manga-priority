@@ -8,277 +8,172 @@
   <meta name="apple-mobile-web-app-title" content="ネーム優先順位" />
   <meta name="theme-color" content="#1a1a2e" />
   <title>ネーム優先順位ツール</title>
-
-  <!-- PWA manifest inline -->
-  <script>
-    const manifest = {
-      name: "ネーム優先順位ツール",
-      short_name: "ネーム",
-      start_url: ".",
-      display: "standalone",
-      background_color: "#1a1a2e",
-      theme_color: "#1a1a2e",
-      icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231a1a2e'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E📖%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml" }]
-    };
-    const blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("link");
-    link.rel = "manifest";
-    link.href = url;
-    document.head.appendChild(link);
-  </script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
     body {
       min-height: 100vh;
-      min-height: -webkit-fill-available;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       font-family: 'Hiragino Kaku Gothic Pro', 'Noto Sans JP', sans-serif;
       color: #fff;
-      overflow-x: hidden;
-    }
-    .safe-area {
-      padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
       padding-top: max(env(safe-area-inset-top, 20px), 24px);
     }
-    .header { text-align: center; margin-bottom: 24px; }
+
     .title {
-      font-size: 22px;
+      text-align: center;
+      font-size: 20px;
       font-weight: 900;
-      letter-spacing: 2px;
       background: linear-gradient(90deg, #e94560, #f5a623);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
+      margin-bottom: 4px;
     }
-    .subtitle { font-size: 11px; color: #8899aa; margin-top: 4px; }
+    .subtitle { text-align: center; font-size: 11px; color: #8899aa; margin-bottom: 20px; }
 
     .section-label { font-size: 11px; color: #8899aa; margin-bottom: 8px; letter-spacing: 1px; }
 
-    /* Presets */
-    .presets { margin-bottom: 20px; }
-    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
     .preset-btn {
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid #334;
-      background: #ffffff11;
-      color: #aab;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-      -webkit-appearance: none;
+      padding: 7px 14px; border-radius: 20px; border: 1px solid #334;
+      background: #ffffff11; color: #aab; font-size: 13px; font-family: inherit;
     }
     .preset-btn.active { border: 2px solid #e94560; background: #e9456022; color: #e94560; }
     .reset-btn {
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid #334;
-      background: #ffffff08;
-      color: #778;
-      font-size: 12px;
-      cursor: pointer;
-      font-family: inherit;
+      padding: 7px 14px; border-radius: 20px; border: 1px solid #334;
+      background: #ffffff08; color: #778; font-size: 13px; font-family: inherit;
     }
 
-    /* List */
     .list-card {
-      background: #ffffff08;
-      border-radius: 16px;
-      border: 1px solid #ffffff15;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-    .list-header {
-      display: grid;
-      grid-template-columns: 44px 1fr;
-      padding: 10px 16px;
-      border-bottom: 1px solid #ffffff10;
-      font-size: 11px;
-      color: #556;
-      letter-spacing: 1px;
-    }
-    .list-item {
-      display: grid;
-      grid-template-columns: 44px 1fr 32px;
-      align-items: center;
-      padding: 11px 16px;
-      border-bottom: 1px solid #ffffff08;
-      cursor: grab;
-      transition: background 0.15s, transform 0.15s;
-      user-select: none;
-      -webkit-user-select: none;
+      background: #ffffff08; border-radius: 16px;
+      border: 1px solid #ffffff15; overflow: hidden; margin-bottom: 14px;
+      /* prevent scroll conflict */
       touch-action: none;
     }
+
+    .list-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-bottom: 1px solid #ffffff08;
+      background: transparent;
+      transition: background 0.15s;
+      position: relative;
+    }
     .list-item:last-child { border-bottom: none; }
-    .list-item.dragging { opacity: 0.35; }
-    .list-item.over { background: #e9456015; border-left: 3px solid #e94560; transform: scale(1.01); }
-    .list-item.even { background: #ffffff04; }
+    .list-item.dragging { opacity: 0.3; background: #ffffff10; }
+    .list-item.over { background: #e9456020; border-left: 3px solid #e94560; }
 
     .rank {
-      width: 28px; height: 28px;
-      border-radius: 50%;
+      width: 30px; height: 30px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
     }
-    .rank-1 { background: linear-gradient(135deg, #f5a623, #f53d7a); color: #fff; }
-    .rank-2 { background: linear-gradient(135deg, #b0bec5, #78909c); color: #fff; }
-    .rank-3 { background: linear-gradient(135deg, #a5735a, #7a5a3e); color: #fff; }
-    .rank-n { background: #ffffff14; color: #667; }
+    .r1 { background: linear-gradient(135deg,#f5a623,#f53d7a); color:#fff; }
+    .r2 { background: linear-gradient(135deg,#b0bec5,#78909c); color:#fff; }
+    .r3 { background: linear-gradient(135deg,#a5735a,#7a5a3e); color:#fff; }
+    .rn { background: #ffffff14; color:#667; }
 
-    .item-inner { display: flex; align-items: center; gap: 12px; }
-    .item-icon {
-      width: 36px; height: 36px;
-      border-radius: 8px;
+    .icon-box {
+      width: 40px; height: 40px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
+      font-size: 20px; flex-shrink: 0;
     }
-    .item-label { font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
-    .drag-handle { color: #445; font-size: 18px; text-align: center; }
+    .item-label { font-size: 16px; font-weight: 600; flex: 1; }
+    .handle {
+      font-size: 22px; color: #556; padding: 4px 8px;
+      cursor: grab; flex-shrink: 0; user-select: none;
+    }
 
-    /* Summary */
     .summary {
-      background: #e9456011;
-      border: 1px solid #e9456033;
-      border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 20px;
-      font-size: 12px;
-      color: #e94560aa;
-      line-height: 1.8;
-      word-break: break-all;
+      background: #e9456011; border: 1px solid #e9456033;
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 18px;
+      font-size: 12px; color: #e94560aa; line-height: 1.9;
     }
     .summary strong { color: #e94560; }
 
     /* Save */
-    .save-section { margin-bottom: 20px; }
-    .save-row { display: flex; gap: 8px; }
+    .add-btn {
+      padding: 9px 20px; border-radius: 20px; border: 1px dashed #445;
+      background: transparent; color: #778; font-size: 13px; font-family: inherit;
+    }
+    .save-row { display: flex; gap: 8px; margin-top: 0; }
     .save-input {
-      flex: 1;
-      padding: 9px 12px;
-      border-radius: 8px;
-      border: 1px solid #334;
-      background: #ffffff11;
-      color: #fff;
-      font-size: 13px;
-      font-family: inherit;
-      outline: none;
+      flex: 1; padding: 9px 12px; border-radius: 8px; border: 1px solid #334;
+      background: #ffffff11; color: #fff; font-size: 13px; font-family: inherit; outline: none;
     }
     .save-input::placeholder { color: #445; }
     .save-btn {
-      padding: 9px 16px;
-      border-radius: 8px;
-      border: none;
-      background: linear-gradient(90deg, #e94560, #f5a623);
-      color: #fff;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      font-family: inherit;
+      padding: 9px 14px; border-radius: 8px; border: none;
+      background: linear-gradient(90deg,#e94560,#f5a623); color:#fff;
+      font-weight: 700; font-size: 13px; font-family: inherit;
     }
     .cancel-btn {
-      padding: 9px 12px;
-      border-radius: 8px;
-      border: 1px solid #334;
-      background: transparent;
-      color: #778;
-      font-size: 13px;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .add-btn {
-      padding: 9px 20px;
-      border-radius: 20px;
-      border: 1px dashed #445;
-      background: transparent;
-      color: #778;
-      font-size: 13px;
-      cursor: pointer;
-      font-family: inherit;
+      padding: 9px 12px; border-radius: 8px; border: 1px solid #334;
+      background: transparent; color: #778; font-size: 13px; font-family: inherit;
     }
 
-    /* Saved sets */
-    .saved-list { display: flex; flex-direction: column; gap: 8px; }
+    .saved-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .saved-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      background: #ffffff08;
-      border: 1px solid #334;
-      border-radius: 10px;
-      gap: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: #ffffff08; border: 1px solid #334; border-radius: 10px; gap: 8px;
     }
     .saved-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
     .saved-order { font-size: 10px; color: #556; }
-    .saved-actions { display: flex; gap: 8px; flex-shrink: 0; }
     .load-btn {
-      padding: 5px 12px;
-      border-radius: 8px;
-      border: 1px solid #556;
-      background: transparent;
-      color: #aab;
-      font-size: 12px;
-      cursor: pointer;
-      font-family: inherit;
+      padding: 5px 12px; border-radius: 8px; border: 1px solid #556;
+      background: transparent; color: #aab; font-size: 12px; font-family: inherit; flex-shrink: 0;
     }
     .del-btn {
-      padding: 5px 10px;
-      border-radius: 8px;
-      border: none;
-      background: #e9456022;
-      color: #e94560;
-      font-size: 12px;
-      cursor: pointer;
-      font-family: inherit;
+      padding: 5px 10px; border-radius: 8px; border: none;
+      background: #e9456022; color: #e94560; font-size: 12px; font-family: inherit; flex-shrink: 0;
+    }
+
+    /* Ghost element while dragging */
+    #ghost {
+      position: fixed; pointer-events: none; z-index: 9999;
+      background: #1e3a5f; border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      border: 1px solid #e9456055;
+      display: none; align-items: center; gap: 12px;
+      padding: 12px 14px;
     }
   </style>
 </head>
 <body>
-<div class="safe-area" id="app">
-  <div class="header">
-    <div class="title">📖 ネーム優先順位ツール</div>
-    <div class="subtitle">ドラッグ＆ドロップで並び替えて優先順位を決めよう</div>
-  </div>
 
-  <div class="presets">
-    <div class="section-label">プリセット</div>
-    <div class="preset-row" id="presets"></div>
-  </div>
+<div id="ghost"></div>
 
-  <div class="list-card">
-    <div class="list-header"><span>順位</span><span>要素</span></div>
-    <div id="sortable-list"></div>
-  </div>
+<div class="title">📖 ネーム優先順位ツール</div>
+<div class="subtitle">☰ を長押し→ドラッグで並び替え</div>
 
-  <div class="summary" id="summary"></div>
+<div class="section-label">プリセット</div>
+<div class="preset-row" id="presets"></div>
 
-  <div class="save-section">
-    <div class="section-label">セット保存</div>
-    <div id="save-area">
-      <button class="add-btn" onclick="showSaveInput()">＋ 現在の順序をセットとして保存</button>
-    </div>
-  </div>
+<div class="section-label">優先順位</div>
+<div class="list-card" id="list"></div>
 
-  <div id="saved-section" style="display:none">
-    <div class="section-label">保存済みセット</div>
-    <div class="saved-list" id="saved-list"></div>
-  </div>
+<div class="summary" id="summary"></div>
+
+<div class="section-label">セット保存</div>
+<div id="save-area">
+  <button class="add-btn" onclick="showSave()">＋ 現在の順序を保存</button>
+</div>
+
+<div id="saved-section" style="display:none;margin-top:16px">
+  <div class="section-label">保存済みセット</div>
+  <div class="saved-list" id="saved-list"></div>
 </div>
 
 <script>
 const ELEMENTS = [
-  { id: "serif",     label: "セリフ",   icon: "💬", bg: "#FFE0B233", border: "#FFE0B255" },
-  { id: "atari",     label: "アタリ",   icon: "✏️", bg: "#E1F5FE33", border: "#E1F5FE55" },
-  { id: "fukidashi", label: "吹き出し", icon: "🗯️", bg: "#F3E5F533", border: "#F3E5F555" },
-  { id: "kariKoma",  label: "仮コマ",   icon: "🔲", bg: "#E8F5E933", border: "#E8F5E955" },
-  { id: "koma",      label: "コマ",     icon: "⬜", bg: "#FFF9C433", border: "#FFF9C455" },
-  { id: "chara1",    label: "キャラ1",  icon: "🧑", bg: "#FCE4EC33", border: "#FCE4EC55" },
-  { id: "chara2",    label: "キャラ2",  icon: "👤", bg: "#E0F7FA33", border: "#E0F7FA55" },
-  { id: "chara3",    label: "キャラ3",  icon: "👥", bg: "#F1F8E933", border: "#F1F8E955" },
-  { id: "haikei",    label: "背景",     icon: "🏞️", bg: "#EDE7F633", border: "#EDE7F655" },
+  { id:"serif",     label:"セリフ",   icon:"💬", bg:"#FFE0B240" },
+  { id:"atari",     label:"アタリ",   icon:"✏️",  bg:"#E1F5FE40" },
+  { id:"fukidashi", label:"吹き出し", icon:"🗯️",  bg:"#F3E5F540" },
+  { id:"kariKoma",  label:"仮コマ",   icon:"🔲", bg:"#E8F5E940" },
+  { id:"koma",      label:"コマ",     icon:"⬜", bg:"#FFF9C440" },
+  { id:"chara1",    label:"キャラ1",  icon:"🧑", bg:"#FCE4EC40" },
+  { id:"chara2",    label:"キャラ2",  icon:"👤", bg:"#E0F7FA40" },
+  { id:"chara3",    label:"キャラ3",  icon:"👥", bg:"#F1F8E940" },
+  { id:"haikei",    label:"背景",     icon:"🏞️", bg:"#EDE7F640" },
 ];
 
 const PRESETS = {
@@ -288,210 +183,195 @@ const PRESETS = {
 };
 
 let items = [...ELEMENTS];
-let savedSets = JSON.parse(localStorage.getItem("mangaSets") || "[]");
+let savedSets = [];
+try { savedSets = JSON.parse(localStorage.getItem("mangaSets") || "[]"); } catch(e){}
 let activePreset = null;
-let dragSrcIdx = null;
-let touchDragIdx = null;
-let touchClone = null;
-let touchOverIdx = null;
 
-function getEl(id) { return ELEMENTS.find(e => e.id === id); }
+// ---- Drag state ----
+let dragIdx = null;
+let ghostEl = document.getElementById("ghost");
+let listEl = document.getElementById("list");
 
-function renderList() {
-  const list = document.getElementById("sortable-list");
-  list.innerHTML = "";
+function getItemEl(idx) { return listEl.children[idx]; }
+
+function render() {
+  listEl.innerHTML = "";
   items.forEach((item, idx) => {
     const div = document.createElement("div");
-    div.className = "list-item" + (idx % 2 === 0 ? " even" : "");
+    div.className = "list-item";
     div.dataset.idx = idx;
 
-    const rankClass = idx === 0 ? "rank-1" : idx === 1 ? "rank-2" : idx === 2 ? "rank-3" : "rank-n";
+    const rankClass = ["r1","r2","r3"][idx] || "rn";
     div.innerHTML = `
-      <div class="rank ${rankClass}">${idx + 1}</div>
-      <div class="item-inner">
-        <div class="item-icon" style="background:${item.bg};border:1px solid ${item.border}">${item.icon}</div>
-        <span class="item-label">${item.label}</span>
-      </div>
-      <div class="drag-handle">⠿</div>
+      <div class="rank ${rankClass}">${idx+1}</div>
+      <div class="icon-box" style="background:${item.bg}">${item.icon}</div>
+      <span class="item-label">${item.label}</span>
+      <span class="handle">☰</span>
     `;
 
-    // Desktop drag
-    div.draggable = true;
-    div.addEventListener("dragstart", e => { dragSrcIdx = idx; div.classList.add("dragging"); });
-    div.addEventListener("dragover", e => { e.preventDefault(); clearOver(); div.classList.add("over"); });
-    div.addEventListener("drop", e => { e.preventDefault(); reorder(dragSrcIdx, idx); });
-    div.addEventListener("dragend", () => { clearOver(); div.classList.remove("dragging"); });
+    // Touch events on handle
+    const handle = div.querySelector(".handle");
+    handle.addEventListener("touchstart", e => onTouchStart(e, idx), {passive:false});
 
-    // Touch drag
-    div.addEventListener("touchstart", onTouchStart, { passive: false });
-    div.addEventListener("touchmove", onTouchMove, { passive: false });
-    div.addEventListener("touchend", onTouchEnd);
-
-    list.appendChild(div);
+    listEl.appendChild(div);
   });
   renderSummary();
 }
 
-function clearOver() {
-  document.querySelectorAll(".list-item.over").forEach(el => el.classList.remove("over"));
-}
-
-function reorder(from, to) {
-  if (from === to || from == null) return;
-  const newItems = [...items];
-  const [moved] = newItems.splice(from, 1);
-  newItems.splice(to, 0, moved);
-  items = newItems;
-  activePreset = null;
-  renderList();
-  renderPresets();
-}
-
 function renderSummary() {
-  const s = document.getElementById("summary");
-  s.innerHTML = `<strong>現在の順序：</strong>` + items.map(i => i.label).join(" → ");
+  document.getElementById("summary").innerHTML =
+    `<strong>現在の順序：</strong>` + items.map(i=>i.label).join(" → ");
 }
 
+// ---- Touch drag ----
+let touchStartY = 0;
+let touchCurrentY = 0;
+let itemHeight = 64;
+
+function onTouchStart(e, idx) {
+  e.preventDefault();
+  dragIdx = idx;
+  touchStartY = e.touches[0].clientY;
+  touchCurrentY = touchStartY;
+
+  const srcEl = getItemEl(idx);
+  itemHeight = srcEl.offsetHeight;
+  srcEl.classList.add("dragging");
+
+  // Setup ghost
+  ghostEl.style.display = "flex";
+  ghostEl.style.width = srcEl.offsetWidth + "px";
+  ghostEl.innerHTML = srcEl.innerHTML;
+  moveGhost(touchCurrentY);
+
+  document.addEventListener("touchmove", onTouchMove, {passive:false});
+  document.addEventListener("touchend", onTouchEnd);
+}
+
+function moveGhost(y) {
+  ghostEl.style.left = listEl.getBoundingClientRect().left + "px";
+  ghostEl.style.top = (y - itemHeight/2) + "px";
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  touchCurrentY = e.touches[0].clientY;
+  moveGhost(touchCurrentY);
+
+  // highlight target
+  const listRect = listEl.getBoundingClientRect();
+  const relY = touchCurrentY - listRect.top;
+  const targetIdx = Math.min(Math.max(Math.floor(relY / itemHeight), 0), items.length - 1);
+
+  Array.from(listEl.children).forEach((el, i) => {
+    el.classList.toggle("over", i === targetIdx && i !== dragIdx);
+  });
+}
+
+function onTouchEnd(e) {
+  document.removeEventListener("touchmove", onTouchMove);
+  document.removeEventListener("touchend", onTouchEnd);
+
+  ghostEl.style.display = "none";
+
+  const listRect = listEl.getBoundingClientRect();
+  const relY = touchCurrentY - listRect.top;
+  const targetIdx = Math.min(Math.max(Math.floor(relY / itemHeight), 0), items.length - 1);
+
+  if (dragIdx !== null && targetIdx !== dragIdx) {
+    const newItems = [...items];
+    const [moved] = newItems.splice(dragIdx, 1);
+    newItems.splice(targetIdx, 0, moved);
+    items = newItems;
+    activePreset = null;
+    renderPresets();
+  }
+
+  dragIdx = null;
+  render();
+}
+
+// ---- Presets ----
 function renderPresets() {
   const row = document.getElementById("presets");
   row.innerHTML = "";
   Object.keys(PRESETS).forEach(name => {
     const btn = document.createElement("button");
-    btn.className = "preset-btn" + (activePreset === name ? " active" : "");
+    btn.className = "preset-btn" + (activePreset===name?" active":"");
     btn.textContent = name;
     btn.onclick = () => applyPreset(name);
     row.appendChild(btn);
   });
-  const reset = document.createElement("button");
-  reset.className = "reset-btn";
-  reset.textContent = "リセット";
-  reset.onclick = () => { items = [...ELEMENTS]; activePreset = null; renderList(); renderPresets(); };
-  row.appendChild(reset);
+  const r = document.createElement("button");
+  r.className = "reset-btn";
+  r.textContent = "リセット";
+  r.onclick = () => { items=[...ELEMENTS]; activePreset=null; render(); renderPresets(); };
+  row.appendChild(r);
 }
 
 function applyPreset(name) {
   const order = PRESETS[name];
-  items = [...ELEMENTS].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  items = [...ELEMENTS].sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
   activePreset = name;
-  renderList();
-  renderPresets();
+  render(); renderPresets();
 }
 
-function showSaveInput() {
+// ---- Save ----
+function showSave() {
   document.getElementById("save-area").innerHTML = `
     <div class="save-row">
-      <input class="save-input" id="save-name" placeholder="セット名を入力..." />
+      <input class="save-input" id="sname" placeholder="セット名..." />
       <button class="save-btn" onclick="doSave()">保存</button>
-      <button class="cancel-btn" onclick="hideSaveInput()">✕</button>
-    </div>
-  `;
-  setTimeout(() => document.getElementById("save-name")?.focus(), 100);
+      <button class="cancel-btn" onclick="hideSave()">✕</button>
+    </div>`;
+  setTimeout(()=>document.getElementById("sname")?.focus(),100);
 }
-
-function hideSaveInput() {
-  document.getElementById("save-area").innerHTML = `<button class="add-btn" onclick="showSaveInput()">＋ 現在の順序をセットとして保存</button>`;
+function hideSave() {
+  document.getElementById("save-area").innerHTML =
+    `<button class="add-btn" onclick="showSave()">＋ 現在の順序を保存</button>`;
 }
-
 function doSave() {
-  const name = document.getElementById("save-name")?.value?.trim();
+  const name = document.getElementById("sname")?.value?.trim();
   if (!name) return;
-  savedSets.push({ name, order: items.map(i => i.id) });
-  localStorage.setItem("mangaSets", JSON.stringify(savedSets));
-  hideSaveInput();
+  savedSets.push({ name, order: items.map(i=>i.id) });
+  try { localStorage.setItem("mangaSets", JSON.stringify(savedSets)); } catch(e){}
+  hideSave();
   renderSaved();
 }
-
+function loadSaved(idx) {
+  const s = savedSets[idx];
+  items = [...ELEMENTS].sort((a,b)=>s.order.indexOf(a.id)-s.order.indexOf(b.id));
+  activePreset = null; render(); renderPresets();
+}
+function deleteSaved(idx) {
+  savedSets.splice(idx,1);
+  try { localStorage.setItem("mangaSets", JSON.stringify(savedSets)); } catch(e){}
+  renderSaved();
+}
 function renderSaved() {
   const sec = document.getElementById("saved-section");
   const list = document.getElementById("saved-list");
-  if (savedSets.length === 0) { sec.style.display = "none"; return; }
-  sec.style.display = "block";
-  list.innerHTML = "";
-  savedSets.forEach((saved, idx) => {
-    const div = document.createElement("div");
-    div.className = "saved-item";
-    const orderStr = saved.order.map(id => getEl(id)?.label || id).join(" → ");
-    div.innerHTML = `
+  if (!savedSets.length) { sec.style.display="none"; return; }
+  sec.style.display="block";
+  list.innerHTML="";
+  savedSets.forEach((s,i)=>{
+    const div=document.createElement("div");
+    div.className="saved-item";
+    const labels = s.order.map(id=>ELEMENTS.find(e=>e.id===id)?.label||id).join("→");
+    div.innerHTML=`
       <div style="min-width:0">
-        <div class="saved-name">${saved.name}</div>
-        <div class="saved-order">${orderStr}</div>
+        <div class="saved-name">${s.name}</div>
+        <div class="saved-order">${labels}</div>
       </div>
-      <div class="saved-actions">
-        <button class="load-btn" onclick="loadSaved(${idx})">読込</button>
-        <button class="del-btn" onclick="deleteSaved(${idx})">✕</button>
-      </div>
-    `;
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="load-btn" onclick="loadSaved(${i})">読込</button>
+        <button class="del-btn" onclick="deleteSaved(${i})">✕</button>
+      </div>`;
     list.appendChild(div);
   });
 }
 
-function loadSaved(idx) {
-  const saved = savedSets[idx];
-  items = [...ELEMENTS].sort((a, b) => saved.order.indexOf(a.id) - saved.order.indexOf(b.id));
-  activePreset = null;
-  renderList();
-  renderPresets();
-}
-
-function deleteSaved(idx) {
-  savedSets.splice(idx, 1);
-  localStorage.setItem("mangaSets", JSON.stringify(savedSets));
-  renderSaved();
-}
-
-// ---- Touch drag & drop ----
-function onTouchStart(e) {
-  const div = e.currentTarget;
-  touchDragIdx = parseInt(div.dataset.idx);
-  // create ghost
-  touchClone = div.cloneNode(true);
-  touchClone.style.cssText = `
-    position:fixed; left:0; top:0; width:${div.offsetWidth}px; opacity:0.85;
-    pointer-events:none; z-index:9999; background:#1a2a4a;
-    border-radius:12px; box-shadow:0 8px 32px #0008;
-    transition: none;
-  `;
-  document.body.appendChild(touchClone);
-  div.classList.add("dragging");
-  moveTouchClone(e.touches[0]);
-}
-
-function moveTouchClone(touch) {
-  if (!touchClone) return;
-  touchClone.style.transform = `translate(${touch.clientX - touchClone.offsetWidth / 2}px, ${touch.clientY - 28}px)`;
-}
-
-function onTouchMove(e) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  moveTouchClone(touch);
-
-  // find which item we're over
-  const els = document.querySelectorAll(".list-item");
-  clearOver();
-  touchOverIdx = null;
-  els.forEach(el => {
-    const rect = el.getBoundingClientRect();
-    if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-      el.classList.add("over");
-      touchOverIdx = parseInt(el.dataset.idx);
-    }
-  });
-}
-
-function onTouchEnd(e) {
-  if (touchClone) { touchClone.remove(); touchClone = null; }
-  clearOver();
-  document.querySelectorAll(".list-item.dragging").forEach(el => el.classList.remove("dragging"));
-  if (touchOverIdx !== null && touchOverIdx !== touchDragIdx) {
-    reorder(touchDragIdx, touchOverIdx);
-  }
-  touchDragIdx = null;
-  touchOverIdx = null;
-}
-
-// Init
-renderList();
+render();
 renderPresets();
 renderSaved();
 </script>
